@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Planet Equilibrium Temperature (from Stellar Mass)</title>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+  </script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background-color: #f9fafb;
+      color: #333;
+    }
+    h1 {
+      color: #1a3d7c;
+    }
+    .container {
+      max-width: 760px;
+      padding: 20px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+    input, select {
+      padding: 8px;
+      width: 100%;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 15px;
+      border: none;
+      background-color: #1a73e8;
+      color: white;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #1559b0;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 17px;
+      font-weight: bold;
+    }
+    .equation {
+      background: #f0f4f8;
+      border-left: 4px solid #1a73e8;
+      padding: 12px;
+      margin-bottom: 20px;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .small {
+      font-size: 13px;
+      color: #555;
+    }
+    .formula {
+      font-size: 16px;
+      font-weight: normal;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Planet Equilibrium Temperature (from Stellar Mass)</h1>
+
+    <div class="equation">
+      <p>
+        Stellar mass \(M_\star\) (in units of solar masses \(M_\odot\)) is converted to stellar luminosity
+        \(L_\star\) (in units of solar luminosity \(L_\odot\)) using the piecewise
+        mass-luminosity approximation for main-sequence stars:
+      </p>
+      <p style="margin-left:20px;">
+        \[
+          \frac{L_\star}{L_\odot} \approx
+          \begin{cases}
+            0.23\,M_\star^{2.3}, & M_\star < 0.43\\[6pt]
+            M_\star^{4}, & 0.43 \le M_\star < 2\\[6pt]
+            1.5\,M_\star^{3.5}, & 2 \le M_\star < 20\\[6pt]
+            3200\,M_\star, & M_\star \ge 20
+          \end{cases}
+        \]
+      </p>
+      <p class="small">
+        Approximate fits valid for main-sequence stars; evolved stars or very young stars
+        may not follow this relation.
+      </p>
+
+      <p style="margin-top:10px;">
+        The equilibrium temperature (Earth's albedo \(A\approx0.3\)) is:
+      </p>
+      <p style="margin-left:20px;">
+        \[
+          T_{eq} \approx 278\ \text{K}\ \frac{L_\star^{1/4}}{\sqrt{d}}
+        \]
+      </p>
+
+      <p>
+        Adding a greenhouse correction:
+      </p>
+      <p style="margin-left:20px;">
+        \[
+          T_{\text{surface}} \approx T_{eq} + \Delta T_{\text{greenhouse}}
+        \]
+      </p>
+      <p class="small">Presets: Earth # +33 K; Venus # +500 K; Mars # +5 K.</p>
+
+      <p style="margin-top:10px;">
+        Orbital period from Kepler's Third Law:
+      </p>
+      <p style="margin-left:20px;">
+        \[
+          P = \sqrt{\frac{a^3}{M_\star}}
+        \]
+        where \(P\) is in years, \(a\) in AU, and \(M_\star\) in \(M_\odot\).
+      </p>
+    </div>
+
+    <p>Enter the star's mass (in solar masses \(M_\odot\)) and the planet's distance (in AU):</p>
+
+    <label for="mass">Stellar Mass (\(M_\odot\)):</label>
+    <input type="number" id="mass" step="0.01" value="1" min="0.01">
+
+    <label for="distance">Distance (AU):</label>
+    <input type="number" id="distance" step="0.01" value="1" min="0.001">
+
+    <label for="preset">Select Greenhouse Preset:</label>
+    <select id="preset" onchange="setGreenhouse()">
+      <option value="33">Earth (+33 K)</option>
+      <option value="500">Venus (+500 K)</option>
+      <option value="5">Mars (+5 K)</option>
+      <option value="0">No greenhouse (0 K)</option>
+      <option value="custom">Custom</option>
+    </select>
+
+    <label for="greenhouse">Greenhouse Warming (K):</label>
+    <input type="number" id="greenhouse" step="1" value="33">
+
+    <button onclick="calculateTemperature()">Calculate</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    function massToLuminosity(M) {
+      let L, formulaLatex;
+      if (M < 0.43) {
+        L = 0.23 * Math.pow(M, 2.3);
+        formulaLatex = "\\frac{L}{L_\\odot} = 0.23 \\, M^{2.3}";
+      } else if (M < 2) {
+        L = Math.pow(M, 4);
+        formulaLatex = "\\frac{L}{L_\\odot} = M^{4}";
+      } else if (M < 20) {
+        L = 1.5 * Math.pow(M, 3.5);
+        formulaLatex = "\\frac{L}{L_\\odot} = 1.5 \\, M^{3.5}";
+      } else {
+        L = 3200 * M;
+        formulaLatex = "\\frac{L}{L_\\odot} = 3200 \\, M";
+      }
+      return { L, formulaLatex };
+    }
+
+    function setGreenhouse() {
+      const preset = document.getElementById("preset").value;
+      const greenhouseInput = document.getElementById("greenhouse");
+      if (preset === "custom") {
+        greenhouseInput.removeAttribute("readonly");
+      } else {
+        greenhouseInput.value = preset;
+        greenhouseInput.setAttribute("readonly", true);
+      }
+    }
+
+    function calculateTemperature() {
+      const M = parseFloat(document.getElementById("mass").value);
+      const d = parseFloat(document.getElementById("distance").value);
+      const greenhouse = parseFloat(document.getElementById("greenhouse").value);
+
+      if (!(M > 0) || !(d > 0)) {
+        document.getElementById("result").innerHTML =
+          "<span style='color:crimson'>Please enter positive values for mass and distance.</span>";
+        return;
+      }
+
+      const { L, formulaLatex } = massToLuminosity(M);
+
+      // Equilibrium temperature
+      const TeqK = 278 * Math.pow(L, 0.25) / Math.sqrt(d);
+      const TeqC = TeqK - 273.15;
+
+      // Surface temperature with greenhouse
+      const TsurfK = TeqK + greenhouse;
+      const TsurfC = TsurfK - 273.15;
+
+      // Orbital period (years)
+      const P = Math.sqrt(Math.pow(d, 3) / M);
+      const Pdays = P * 365.25;
+
+      document.getElementById("result").innerHTML = `
+        <p>Stellar luminosity (from mass): <strong>${L.toFixed(3)} \\(L_\\odot\\)</strong></p>
+        <p class="formula">Applied relation:<br> \\(${formulaLatex}\\)</p>
+        <p>Equilibrium Temperature: <strong>${TeqK.toFixed(1)} K</strong> (${TeqC.toFixed(1)} &deg;C)</p>
+        <p>Surface Temperature (with greenhouse): <strong>${TsurfK.toFixed(1)} K</strong> (${TsurfC.toFixed(1)} &deg;C)</p>
+        <p>Orbital Period: <strong>${P.toFixed(2)} years</strong> (${Pdays.toFixed(0)} days)</p>
+      `;
+
+      if (window.MathJax) {
+        MathJax.typesetPromise();
+      }
+    }
+
+    setGreenhouse();
+  </script>
+</body>
+</html>
+
